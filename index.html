@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Browser to Mobile Call</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+      color: #1e293b;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 22px;
+      font-weight: 600;
+      color: #0f172a;
+      text-align: center;
+    }
+
+    label {
+      font-weight: 500;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #0b84ff;
+      box-shadow: 0 0 0 3px rgba(11,132,255,0.2);
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #0b84ff;
+      color: white;
+    }
+    
+    button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none; /* ensures not clickable */
+}
+    .btn-primary:hover {
+      background: #056ed8;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 12px;
+      font-size: 14px;
+      padding: 8px 12px;
+      background: #f1f5f9;
+      border-radius: 6px;
+    }
+
+    #number {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 18px;
+      color: #0f172a;
+      text-align: center;
+    }
+
+    /* ✅ Call Button Container */
+    #callBtn-container {
+      text-align: center;  /* callBtn centered */
+      margin-top: 16px;
+    }
+
+    #callBtn {
+      display: inline-block; /* inline-block with centered parent */
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      background: #16a34a;
+      color: white;
+      transition: background 0.2s;
+    }
+
+    #callBtn:hover {
+      background: #15803d;
+    }
+
+    .debug {
+      margin-top: 20px;
+    }
+
+    .debug strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 180px;
+      font-size: 13px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📞 Browser to Mobile Call</h2>
+
+    <div class="box">
+      <label for="uidInput">Paste UID </label>
+      <input id="uidInput" type="text" placeholder="Paste UID here..." />
+      <div class="btn-group">
+        <button id="startBtn" class="btn btn-primary">Start </button>
+        <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
+      </div>
+    </div>
+
+    <div id="status">Status: not connected</div>
+
+    <div id="number">Waiting for number...</div>
+
+    <!-- ✅ Call Button Container -->
+    <div id="callBtn-container">
+      <a id="callBtn" href="#" style="display:none;">📲 Tap to Call</a>
+    </div>
+
+    <div class="debug">
+      <strong>Console Log</strong>
+      <pre id="log"></pre>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (local files in libs/) -->
+  <script src="libs/firebase-app-compat.js"></script>
+  <script src="libs/firebase-database-compat.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
