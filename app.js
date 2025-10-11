@@ -1,8 +1,7 @@
 // ----------------------------
-// app.js (debug-ready)
+// app.js (QR Scan + Change UID)
 // ----------------------------
 
-// Firebase Config (you provided these values)
 const firebaseConfig = {
   apiKey: "AIzaSyAKTNMVnl4W04_WH0PqsIA2xattjTR6x0M",
   authDomain: "call-from-browserss.firebaseapp.com",
@@ -13,141 +12,137 @@ const firebaseConfig = {
   appId: "1:421459301855:web:5f9581250da6cd3935a06a"
 };
 
-// Initialize Firebase
-try {
-  firebase.initializeApp(firebaseConfig);
-} catch (e) {
-  // if already initialized in same page
-}
+try { firebase.initializeApp(firebaseConfig); } catch(e){}
 const db = firebase.database();
 
-// UI elements
 const uidInput = document.getElementById('uidInput');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const scanQRBtn = document.getElementById('scanQR');
+const changeUIDBtn = document.getElementById('changeUID');
 const statusEl = document.getElementById('status');
 const numberDiv = document.getElementById('number');
 const callBtn = document.getElementById('callBtn');
 const logEl = document.getElementById('log');
+const qrReader = document.getElementById('qr-reader');
 
 let currentUID = null;
 let callRef = null;
+let html5QrCode = null;
 
-// small logger
+// Logger
 function log(msg) {
   const t = new Date().toLocaleTimeString();
   logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
 }
 
-// Utility: set status text + color hint
+// Status UI
 function setStatus(text, color = '#333') {
   statusEl.textContent = `Status: ${text}`;
   statusEl.style.color = color;
-
-  // ✅ Status অনুযায়ী Start button disable/enable করা
-  if (text.toLowerCase().includes('connected')) {
-    startBtn.disabled = true;
-  } else {
-    // UID আছে কিনা চেক করে enable
-    startBtn.disabled = uidInput.value.trim().length > 0 ? false : true;
-  }
 }
 
-
-// attach listener function
+// Attach listener
 function attachListenerForUID(uid) {
   if (!uid) return;
-  // detach previous
-  if (callRef) {
-    try { callRef.off(); } catch(e){ console.warn(e); }
-    callRef = null;
-  }
-
+  if (callRef) try { callRef.off(); } catch(e){}
+  callRef = db.ref(`calls/${uid}`);
   currentUID = uid;
-  callRef = db.ref(`calls/${currentUID}`);
+  setStatus('Connected', 'green');
+  log(`Listening for calls/${uid}`);
 
-  setStatus(`connected`, 'green');
-  log(`Listening to calls/${currentUID}`);
-
-  callRef.on('value', snapshot => {
-    const data = snapshot.val();
+  callRef.on('value', snap => {
+    const data = snap.val();
     if (data && data.number) {
       numberDiv.textContent = `Number: ${data.number}`;
-      callBtn.style.display = 'inline-block';
       callBtn.href = `tel:${data.number}`;
-      callBtn.textContent = `Tap to Call ${data.number}`;
-      log(`Received number ${data.number} (timestamp: ${data.timestamp || 'n/a'})`);
+      callBtn.textContent = `📲 Tap to Call ${data.number}`;
+      callBtn.style.display = 'inline-block';
+      log(`Received number ${data.number}`);
     } else {
       numberDiv.textContent = 'Waiting for number...';
       callBtn.style.display = 'none';
-      log('Node exists but no number field (or node empty)');
     }
-  }, error => {
-    setStatus('read error', 'red');
-    log('Firebase listener error: ' + error.message);
   });
 }
 
-// stop listener
+// Stop listener
 function stopListener() {
-  if (callRef) {
-    try { callRef.off(); } catch(e){ console.warn(e); }
-    callRef = null;
-  }
+  if (callRef) try { callRef.off(); } catch(e){}
   currentUID = null;
-  setStatus('not connected', '#333');
+  setStatus('Not connected', '#333');
   numberDiv.textContent = 'Waiting for number...';
   callBtn.style.display = 'none';
   log('Listener stopped');
 }
 
-// Start button behaviour
+// Start listening
 startBtn.addEventListener('click', () => {
   const uid = uidInput.value.trim();
   if (!uid) {
-    alert('Please paste the UID from the extension into the box first.');
+    alert('Please scan QR code first.');
     return;
   }
   attachListenerForUID(uid);
+  localStorage.setItem('savedUID', uid);
   startBtn.disabled = true;
   stopBtn.disabled = false;
 });
 
-// Stop button
+// Stop listening
 stopBtn.addEventListener('click', () => {
   stopListener();
   startBtn.disabled = false;
   stopBtn.disabled = true;
 });
 
-// Also respond on paste / input immediately so user doesn't have to press Start
-uidInput.addEventListener('input', () => {
-  // if currently not connected, auto-start when user pastes a plausible UID
-  const val = uidInput.value.trim();
-  if (!val) return;
-  // heuristics: UID length > 10
-  if (!currentUID && val.length > 10) {
-    log('Auto-starting listener for pasted UID');
-    attachListenerForUID(val);
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
+// Change UID (forget old one)
+changeUIDBtn.addEventListener('click', () => {
+  localStorage.removeItem('savedUID');
+  uidInput.value = '';
+  stopListener();
+  log('Old UID cleared. You can scan a new one now.');
+  alert('Previous UID cleared. Scan a new QR to reconnect.');
+});
+
+// QR Scan
+scanQRBtn.addEventListener('click', async () => {
+  qrReader.style.display = 'block';
+  scanQRBtn.disabled = true;
+  html5QrCode = new Html5Qrcode("qr-reader");
+  const cameras = await Html5Qrcode.getCameras();
+
+  if (cameras && cameras.length) {
+    const cameraId = cameras[0].id;
+    html5QrCode.start(
+      cameraId,
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        log(`Scanned UID: ${decodedText}`);
+        uidInput.value = decodedText;
+        localStorage.setItem('savedUID', decodedText);
+        html5QrCode.stop().then(() => {
+          qrReader.style.display = 'none';
+          scanQRBtn.disabled = false;
+        });
+      },
+      () => {}
+    ).catch(err => {
+      alert("Camera access failed: " + err.message);
+      scanQRBtn.disabled = false;
+    });
+  } else {
+    alert("No camera found!");
+    scanQRBtn.disabled = false;
   }
 });
 
-// Basic connectivity check
-try {
-  // quick read to test DB access (does not require auth if rules allow)
-  db.ref('.info/connected').once('value').then(snap => {
-    // no-op, this ensures SDK is reachable
-    log('Firebase SDK initialized.');
-  }).catch(err => {
-    log('Firebase SDK init/read error: ' + err.message);
-    setStatus('SDK init error', 'red');
-  });
-} catch (err) {
-  log('Firebase init exception: ' + err.message);
-  setStatus('init exception', 'red');
-}
-
-// Helpful instructions in log
-log('Page ready. Paste UID and wait for realtime updates.');
+// Auto-load UID
+window.addEventListener('load', () => {
+  const savedUID = localStorage.getItem('savedUID');
+  if (savedUID) {
+    uidInput.value = savedUID;
+    log(`Loaded saved UID: ${savedUID}`);
+  }
+  log('App ready. Scan QR or use saved UID.');
+});
