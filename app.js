@@ -1,5 +1,5 @@
 // ----------------------------
-// app.js (QR Scan + Change UID)
+// app.js (Auto Start + Rear Camera Fix + Paste UID)
 // ----------------------------
 
 const firebaseConfig = {
@@ -29,11 +29,15 @@ const qrReader = document.getElementById('qr-reader');
 let currentUID = null;
 let callRef = null;
 let html5QrCode = null;
+let qrScanning = false;
 
 // Logger
 function log(msg) {
   const t = new Date().toLocaleTimeString();
   logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
+  if (logEl.textContent.length > 6000) {
+    logEl.textContent = logEl.textContent.slice(0, 6000);
+  }
 }
 
 // Status UI
@@ -45,10 +49,15 @@ function setStatus(text, color = '#333') {
 // Attach listener
 function attachListenerForUID(uid) {
   if (!uid) return;
-  if (callRef) try { callRef.off(); } catch(e){}
+  try { if (callRef) callRef.off(); } catch(e){}
+
   callRef = db.ref(`calls/${uid}`);
   currentUID = uid;
+  localStorage.setItem('savedUID', uid);
+
   setStatus('Connected', 'green');
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
   log(`Listening for calls/${uid}`);
 
   callRef.on('value', snap => {
@@ -73,107 +82,107 @@ function stopListener() {
   setStatus('Not connected', '#333');
   numberDiv.textContent = 'Waiting for number...';
   callBtn.style.display = 'none';
-  log('Listener stopped');
-}
-
-// Start listening
-startBtn.addEventListener('click', () => {
-  const uid = uidInput.value.trim();
-  if (!uid) {
-    alert('Please scan QR code first.');
-    return;
-  }
-  attachListenerForUID(uid);
-  localStorage.setItem('savedUID', uid);
-  startBtn.disabled = true;
-  stopBtn.disabled = false;
-});
-
-// Stop listening
-stopBtn.addEventListener('click', () => {
-  stopListener();
   startBtn.disabled = false;
   stopBtn.disabled = true;
-});
+  log('Listener stopped');
+
+  if (qrScanning && html5QrCode) {
+    html5QrCode.stop().then(() => {
+      try { html5QrCode.clear(); } catch(e){}
+      qrReader.style.display = 'none';
+      scanQRBtn.disabled = false;
+      qrScanning = false;
+    });
+  }
+}
 
 // Change UID (forget old one)
 changeUIDBtn.addEventListener('click', () => {
   localStorage.removeItem('savedUID');
   uidInput.value = '';
   stopListener();
-  log('Old UID cleared. You can scan a new one now.');
-  alert('Previous UID cleared. Scan a new QR to reconnect.');
+  log('Old UID cleared.');
+  alert('Previous UID cleared. Scan or paste a new UID.');
 });
 
-// QR Scan (updated for rear camera preference)
+// When user pastes or types UID manually → auto start
+uidInput.addEventListener('change', () => {
+  const uid = uidInput.value.trim();
+  if (uid) {
+    log(`Manual UID entered: ${uid}`);
+    attachListenerForUID(uid);
+  }
+});
+
+// Stop manually
+stopBtn.addEventListener('click', () => stopListener());
+
+// QR Scan with rear camera preference
 scanQRBtn.addEventListener('click', async () => {
   qrReader.style.display = 'block';
   scanQRBtn.disabled = true;
-  html5QrCode = new Html5Qrcode("qr-reader");
+
+  if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
 
   try {
-    const cameras = await Html5Qrcode.getCameras();
-
-    if (cameras && cameras.length) {
-      // Try to pick the rear (back) camera
-      let cameraId = cameras[1].id;
-      for (let cam of cameras) {
-        if (cam.label.toLowerCase().includes('back')) {
-          cameraId = cam.id;
-          break;
-        }
-      }
-
-      log(`Using camera: ${cameras.find(c => c.id === cameraId)?.label || 'default'}`);
-
-      html5QrCode.start(
-        cameraId,
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          log(`Scanned UID: ${decodedText}`);
-          uidInput.value = decodedText;
-          localStorage.setItem('savedUID', decodedText);
-          html5QrCode.stop().then(() => {
-            qrReader.style.display = 'none';
-            scanQRBtn.disabled = false;
-          });
-        },
-        (error) => {
-          // scanning error ignored
-        }
-      ).catch(err => {
-        alert("Camera start failed: " + err.message);
-        scanQRBtn.disabled = false;
-      });
-    } else {
-      alert("No camera found!");
-      scanQRBtn.disabled = false;
+    // Try facingMode first (better for mobile rear camera)
+    const config = { fps: 10, qrbox: 250 };
+    try {
+      qrScanning = true;
+      await html5QrCode.start({ facingMode: { exact: "environment" } }, config, onScanSuccess);
+      log('Rear camera started (facingMode: environment)');
+      return;
+    } catch (e) {
+      log('FacingMode exact failed, fallback to camera list...');
     }
+
+    // Fallback: get cameras and choose back camera manually
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras.length) throw new Error('No cameras found.');
+
+    let cameraId = cameras[0].id;
+    for (let cam of cameras) {
+      if (/back|rear|environment/i.test(cam.label)) {
+        cameraId = cam.id;
+        break;
+      }
+    }
+
+    qrScanning = true;
+    html5QrCode.start(cameraId, config, onScanSuccess);
+    log(`Using camera: ${cameras.find(c => c.id === cameraId)?.label || 'default'}`);
+
   } catch (err) {
     alert("Camera access failed: " + err.message);
     scanQRBtn.disabled = false;
+    qrReader.style.display = 'none';
+    qrScanning = false;
   }
 });
 
-      },
-      () => {}
-    ).catch(err => {
-      alert("Camera access failed: " + err.message);
-      scanQRBtn.disabled = false;
-    });
-  } else {
-    alert("No camera found!");
+// QR success handler
+function onScanSuccess(decodedText) {
+  log(`Scanned UID: ${decodedText}`);
+  uidInput.value = decodedText;
+  localStorage.setItem('savedUID', decodedText);
+
+  // Stop scanner & auto start listener
+  html5QrCode.stop().then(() => {
+    try { html5QrCode.clear(); } catch(e){}
+    qrReader.style.display = 'none';
     scanQRBtn.disabled = false;
-  }
-});
+    qrScanning = false;
+    attachListenerForUID(decodedText);
+  });
+}
 
-// Auto-load UID
+// Auto-load saved UID on page load and auto-start
 window.addEventListener('load', () => {
   const savedUID = localStorage.getItem('savedUID');
   if (savedUID) {
     uidInput.value = savedUID;
     log(`Loaded saved UID: ${savedUID}`);
+    attachListenerForUID(savedUID);
   }
-  log('App ready. Scan QR or use saved UID.');
+  log('App ready. Paste or scan UID to auto-start.');
 });
-
