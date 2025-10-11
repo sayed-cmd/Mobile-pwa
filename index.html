@@ -65,12 +65,7 @@
       background: #0b84ff;
       color: white;
     }
-    
-    button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none; /* ensures not clickable */
-}
+
     .btn-primary:hover {
       background: #056ed8;
     }
@@ -101,14 +96,13 @@
       text-align: center;
     }
 
-    /* ✅ Call Button Container */
     #callBtn-container {
-      text-align: center;  /* callBtn centered */
+      text-align: center;
       margin-top: 16px;
     }
 
     #callBtn {
-      display: inline-block; /* inline-block with centered parent */
+      display: inline-block;
       padding: 12px 20px;
       border-radius: 10px;
       font-size: 16px;
@@ -146,27 +140,41 @@
       display: flex;
       gap: 10px;
       margin-top: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #qr-reader {
+      width: 100%;
+      margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>📱 Browser to Mobile Call</h2>
+    <h2>📞 Browser to Mobile Call</h2>
 
     <div class="box">
-      <label for="uidInput">Paste UID </label>
-      <input id="uidInput" type="text" placeholder="Paste UID here..." />
+      <label for="uidInput">UID</label>
+      <input id="uidInput" type="text" placeholder="Scan QR or paste UID..." readonly />
+
       <div class="btn-group">
-        <button id="startBtn" class="btn btn-primary">Start </button>
-        <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
+        <button id="scanQR" class="btn btn-primary">📷 Scan QR</button>
+        <button id="changeUID" class="btn btn-secondary" style="background:#f59e0b;">🔄 Change UID</button>
+      </div>
+
+      <div class="btn-group">
+        <button id="startBtn" class="btn btn-primary">▶ Start</button>
+        <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
       </div>
     </div>
 
-    <div id="status">Status: not connected</div>
+    <div id="qr-reader"></div>
 
+    <div id="status">Status: not connected</div>
     <div id="number">Waiting for number...</div>
 
-    <!-- ✅ Call Button Container -->
     <div id="callBtn-container">
       <a id="callBtn" href="#" style="display:none;">📲 Tap to Call</a>
     </div>
@@ -177,11 +185,13 @@
     </div>
   </div>
 
-  <!-- Firebase SDK (local files in libs/) -->
+  <!-- Firebase SDK -->
   <script src="libs/firebase-app-compat.js"></script>
   <script src="libs/firebase-database-compat.js"></script>
+
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
   <script src="app.js"></script>
 </body>
 </html>
-
