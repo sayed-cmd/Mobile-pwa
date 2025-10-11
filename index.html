@@ -22,132 +22,50 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
 
-    h2 {
-      margin-top: 0;
-      font-size: 22px;
-      font-weight: 600;
-      color: #0f172a;
-      text-align: center;
-    }
+    h2 { text-align:center; }
 
-    label {
-      font-weight: 500;
-      display: block;
-      margin-bottom: 6px;
-    }
+    label { display:block; margin-bottom:6px; font-weight:500; }
 
     input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      font-size: 15px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      box-sizing: border-box;
-      outline: none;
-      transition: border 0.2s;
+      width:100%; padding:12px; font-size:15px;
+      border:1px solid #cbd5e1; border-radius:8px; outline:none;
+      transition:border 0.2s;
     }
 
-    input[type="text"]:focus {
-      border-color: #0b84ff;
-      box-shadow: 0 0 0 3px rgba(11,132,255,0.2);
-    }
+    input[type="text"]:focus { border-color:#0b84ff; box-shadow:0 0 0 3px rgba(11,132,255,0.2); }
 
-    .btn {
-      padding: 10px 16px;
-      border-radius: 8px;
-      border: none;
-      font-size: 15px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+    .btn { padding:10px 16px; border-radius:8px; border:none; cursor:pointer; transition:all 0.2s; font-size:15px; }
 
-    .btn-primary {
-      background: #0b84ff;
-      color: white;
-    }
+    .btn-primary { background:#0b84ff; color:white; }
+    .btn-primary:hover { background:#056ed8; }
 
-    .btn-primary:hover {
-      background: #056ed8;
-    }
+    .btn-secondary { background:#ff1b1b; color:white; }
+    .btn-secondary:disabled { opacity:0.6; cursor:not-allowed; }
 
-    .btn-secondary {
-      background: #ff1b1b;
-      color: #ffffff;
-    }
+    .btn-group { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
 
-    .btn-secondary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    #status { margin-top:12px; font-size:14px; padding:8px 12px; background:#f1f5f9; border-radius:6px; text-align:center; }
+    #number { font-size:20px; font-weight:600; margin-top:18px; text-align:center; }
 
-    #status {
-      margin-top: 12px;
-      font-size: 14px;
-      padding: 8px 12px;
-      background: #f1f5f9;
-      border-radius: 6px;
-    }
-
-    #number {
-      font-size: 20px;
-      font-weight: 600;
-      margin-top: 18px;
-      color: #0f172a;
-      text-align: center;
-    }
-
-    #callBtn-container {
-      text-align: center;
-      margin-top: 16px;
-    }
-
+    #callBtn-container { text-align:center; margin-top:16px; }
     #callBtn {
-      display: inline-block;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 500;
-      text-decoration: none;
-      background: #16a34a;
-      color: white;
-      transition: background 0.2s;
+      display:inline-block; padding:12px 20px; border-radius:10px;
+      font-size:16px; font-weight:500; text-decoration:none;
+      background:#16a34a; color:white; transition:background 0.2s;
     }
+    #callBtn:hover { background:#15803d; }
 
-    #callBtn:hover {
-      background: #15803d;
-    }
-
-    .debug {
-      margin-top: 20px;
-    }
-
-    .debug strong {
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    pre {
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      overflow: auto;
-      max-height: 180px;
-      font-size: 13px;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
+    .debug { margin-top:20px; }
+    pre { background:#0f172a; color:#e2e8f0; padding:12px; border-radius:8px; overflow:auto; max-height:180px; font-size:13px; }
 
     #qr-reader {
-      width: 100%;
-      margin-top: 10px;
+      width: 300px;
+      height: 300px;
+      margin: 10px auto; /* center */
       display: none;
+      border:1px solid #cbd5e1;
+      border-radius:8px;
+      background:#f1f5f9;
     }
   </style>
 </head>
@@ -155,20 +73,17 @@
   <div class="container">
     <h2>📞 Browser to Mobile Call</h2>
 
-    <div class="box">
-      <label for="uidInput">UID</label>
-      <input id="uidInput" type="text" placeholder="Scan QR or paste UID..." />
+    <label for="uidInput">UID</label>
+    <input id="uidInput" type="text" placeholder="Scan QR or paste UID..." />
 
+    <div class="btn-group">
+      <button id="scanQR" class="btn btn-primary">📷 Scan QR</button>
+      <button id="changeUID" class="btn btn-secondary" style="background:#f59e0b;">🔄 Change UID</button>
+    </div>
 
-      <div class="btn-group">
-        <button id="scanQR" class="btn btn-primary">📷 Scan QR</button>
-        <button id="changeUID" class="btn btn-secondary" style="background:#f59e0b;">🔄 Change UID</button>
-      </div>
-
-      <div class="btn-group">
-        <button id="startBtn" class="btn btn-primary">▶ Start</button>
-        <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
-      </div>
+    <div class="btn-group">
+      <button id="startBtn" class="btn btn-primary">▶ Start</button>
+      <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
     </div>
 
     <div id="qr-reader"></div>
@@ -191,8 +106,165 @@
   <script src="libs/firebase-database-compat.js"></script>
 
   <!-- QR Scanner -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
-  <script src="app.js"></script>
+  <script>
+  // ----------------------------
+// Final app.js integrated
+// ----------------------------
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAKTNMVnl4W04_WH0PqsIA2xattjTR6x0M",
+  authDomain: "call-from-browserss.firebaseapp.com",
+  databaseURL: "https://call-from-browserss-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "call-from-browserss",
+  storageBucket: "call-from-browserss.firebasestorage.app",
+  messagingSenderId: "421459301855",
+  appId: "1:421459301855:web:5f9581250da6cd3935a06a"
+};
+try { firebase.initializeApp(firebaseConfig); } catch(e){}
+const db = firebase.database();
+
+const uidInput = document.getElementById('uidInput');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const scanQRBtn = document.getElementById('scanQR');
+const changeUIDBtn = document.getElementById('changeUID');
+const statusEl = document.getElementById('status');
+const numberDiv = document.getElementById('number');
+const callBtn = document.getElementById('callBtn');
+const logEl = document.getElementById('log');
+const qrReader = document.getElementById('qr-reader');
+
+let currentUID = null;
+let callRef = null;
+let html5QrCode = null;
+let qrScanning = false;
+
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent = `[${t}] ${msg}\n` + logEl.textContent;
+  if(logEl.textContent.length>6000) logEl.textContent=logEl.textContent.slice(0,6000);
+}
+function setStatus(text,color='#333'){ statusEl.textContent=`Status: ${text}`; statusEl.style.color=color; }
+
+function attachListenerForUID(uid){
+  if(!uid) return;
+  try{ if(callRef) callRef.off(); } catch(e){}
+  callRef = db.ref(`calls/${uid}`);
+  currentUID = uid;
+  setStatus('Connected','green');
+  startBtn.disabled=true; stopBtn.disabled=false;
+  log(`Listening for calls/${uid}`);
+  callRef.on('value', snap=>{
+    const data = snap.val();
+    if(data && data.number){
+      numberDiv.textContent=`Number: ${data.number}`;
+      callBtn.href=`tel:${data.number}`;
+      callBtn.textContent=`📲 Tap to Call ${data.number}`;
+      callBtn.style.display='inline-block';
+      log(`Received number ${data.number}`);
+    } else{
+      numberDiv.textContent='Waiting for number...';
+      callBtn.style.display='none';
+    }
+  });
+}
+
+function stopListener(){
+  if(callRef) try{ callRef.off(); } catch(e){}
+  currentUID=null;
+  setStatus('Not connected','#333');
+  numberDiv.textContent='Waiting for number...';
+  callBtn.style.display='none';
+  startBtn.disabled=false; stopBtn.disabled=true;
+  log('Listener stopped');
+  if(qrScanning && html5QrCode){
+    html5QrCode.stop().then(()=>{
+      try{ html5QrCode.clear(); } catch(e){}
+      qrReader.style.display='none';
+      scanQRBtn.textContent="📷 Scan QR";
+      qrScanning=false;
+    });
+  }
+}
+
+function startListening(uid){
+  if(!uid){ alert('Please scan QR or enter UID.'); return; }
+  attachListenerForUID(uid);
+  localStorage.setItem('savedUID',uid);
+}
+
+startBtn.addEventListener('click',()=>{ startListening(uidInput.value.trim()); });
+stopBtn.addEventListener('click',()=>stopListener());
+changeUIDBtn.addEventListener('click',()=>{
+  localStorage.removeItem('savedUID');
+  uidInput.value='';
+  stopListener();
+  log('Old UID cleared.');
+  alert('Previous UID cleared. Scan or paste a new UID.');
+});
+uidInput.addEventListener('change',()=>{
+  const uid=uidInput.value.trim();
+  if(uid){ log(`Manual UID entered: ${uid}`); startListening(uid); }
+});
+
+scanQRBtn.addEventListener('click', async ()=>{
+  if(qrScanning && html5QrCode){
+    html5QrCode.stop().then(()=>{
+      try{ html5QrCode.clear(); } catch(e){}
+      qrReader.style.display='none';
+      qrScanning=false;
+      scanQRBtn.textContent="📷 Scan QR";
+      log('QR scanner closed by user');
+    }).catch(err=>log('Error stopping QR scanner: '+err.message));
+    return;
+  }
+
+  qrReader.style.display='block';
+  if(!html5QrCode) html5QrCode=new Html5Qrcode("qr-reader");
+  const config={fps:10, qrbox:250};
+  try{
+    qrScanning=true;
+    await html5QrCode.start({facingMode:{exact:"environment"}}, config, onScanSuccess);
+    scanQRBtn.textContent="❌ Close QR";
+    log('Rear camera started (facingMode: environment)');
+    return;
+  }catch(e){ log('FacingMode failed, fallback...'); }
+  try{
+    const cameras=await Html5Qrcode.getCameras();
+    if(!cameras.length) throw new Error('No cameras found.');
+    let cameraId=cameras[0].id;
+    for(let cam of cameras){ if(/back|rear|environment/i.test(cam.label)){ cameraId=cam.id; break; } }
+    await html5QrCode.start(cameraId, config, onScanSuccess);
+    scanQRBtn.textContent="❌ Close QR";
+    log(`Using camera: ${cameras.find(c=>c.id===cameraId)?.label||'default'}`);
+  }catch(err){
+    alert("Camera access failed: "+err.message);
+    qrReader.style.display='none';
+    qrScanning=false;
+    scanQRBtn.textContent="📷 Scan QR";
+  }
+});
+
+function onScanSuccess(decodedText){
+  log(`Scanned UID: ${decodedText}`);
+  uidInput.value=decodedText;
+  localStorage.setItem('savedUID',decodedText);
+  html5QrCode.stop().then(()=>{
+    try{ html5QrCode.clear(); } catch(e){}
+    qrReader.style.display='none';
+    qrScanning=false;
+    scanQRBtn.textContent="📷 Scan QR";
+    startListening(decodedText);
+  });
+}
+
+window.addEventListener('load',()=>{
+  const savedUID=localStorage.getItem('savedUID');
+  if(savedUID){ uidInput.value=savedUID; log(`Loaded saved UID: ${savedUID}`); startListening(savedUID); }
+  log('App ready. Paste or scan UID to auto-start.');
+});
+  </script>
 </body>
 </html>
