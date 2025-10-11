@@ -116,7 +116,7 @@ scanQRBtn.addEventListener('click', async () => {
 
     if (cameras && cameras.length) {
       // Try to pick the rear (back) camera
-      let cameraId = cameras[0].id;
+      let cameraId = cameras[1].id;
       for (let cam of cameras) {
         if (cam.label.toLowerCase().includes('back')) {
           cameraId = cam.id;
@@ -176,3 +176,4 @@ window.addEventListener('load', () => {
   }
   log('App ready. Scan QR or use saved UID.');
 });
+
