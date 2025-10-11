@@ -105,26 +105,56 @@ changeUIDBtn.addEventListener('click', () => {
   alert('Previous UID cleared. Scan a new QR to reconnect.');
 });
 
-// QR Scan
+// QR Scan (updated for rear camera preference)
 scanQRBtn.addEventListener('click', async () => {
   qrReader.style.display = 'block';
   scanQRBtn.disabled = true;
   html5QrCode = new Html5Qrcode("qr-reader");
-  const cameras = await Html5Qrcode.getCameras();
 
-  if (cameras && cameras.length) {
-    const cameraId = cameras[0].id;
-    html5QrCode.start(
-      cameraId,
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        log(`Scanned UID: ${decodedText}`);
-        uidInput.value = decodedText;
-        localStorage.setItem('savedUID', decodedText);
-        html5QrCode.stop().then(() => {
-          qrReader.style.display = 'none';
-          scanQRBtn.disabled = false;
-        });
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (cameras && cameras.length) {
+      // Try to pick the rear (back) camera
+      let cameraId = cameras[0].id;
+      for (let cam of cameras) {
+        if (cam.label.toLowerCase().includes('back')) {
+          cameraId = cam.id;
+          break;
+        }
+      }
+
+      log(`Using camera: ${cameras.find(c => c.id === cameraId)?.label || 'default'}`);
+
+      html5QrCode.start(
+        cameraId,
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          log(`Scanned UID: ${decodedText}`);
+          uidInput.value = decodedText;
+          localStorage.setItem('savedUID', decodedText);
+          html5QrCode.stop().then(() => {
+            qrReader.style.display = 'none';
+            scanQRBtn.disabled = false;
+          });
+        },
+        (error) => {
+          // scanning error ignored
+        }
+      ).catch(err => {
+        alert("Camera start failed: " + err.message);
+        scanQRBtn.disabled = false;
+      });
+    } else {
+      alert("No camera found!");
+      scanQRBtn.disabled = false;
+    }
+  } catch (err) {
+    alert("Camera access failed: " + err.message);
+    scanQRBtn.disabled = false;
+  }
+});
+
       },
       () => {}
     ).catch(err => {
