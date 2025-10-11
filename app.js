@@ -12,6 +12,29 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   let currentUID = null, callRef = null, html5QrCode = null, qrScanning = false;
 
+  // Wait until Html5Qrcode is loaded
+  if (typeof Html5Qrcode === 'undefined') {
+    await new Promise((resolve, reject) => {
+      const maxWait = 5000; // max 5 sec
+      let waited = 0;
+      const interval = setInterval(() => {
+        if (typeof Html5Qrcode !== 'undefined') {
+          clearInterval(interval);
+          resolve();
+        }
+        waited += 100;
+        if (waited >= maxWait) {
+          clearInterval(interval);
+          reject(new Error("Html5Qrcode library not loaded after 5s"));
+        }
+      }, 100);
+    }).catch(err => {
+      alert(err.message);
+      console.error(err);
+      return;
+    });
+  }
+
   const firebaseConfig = {
     apiKey: "AIzaSyAKTNMVnl4W04_WH0PqsIA2xattjTR6x0M",
     authDomain: "call-from-browserss.firebaseapp.com",
@@ -21,6 +44,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     messagingSenderId: "421459301855",
     appId: "1:421459301855:web:5f9581250da6cd3935a06a"
   };
+
   try { firebase.initializeApp(firebaseConfig); } catch(e){}
   const db = firebase.database();
 
@@ -71,7 +95,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   function startListening(uid){
-    if(!uid){ alert('Please scan QR or enter UID'); return; }
+    if(!uid){ alert('Please scan QR or enter UID'); return;}
     attachListener(uid);
     localStorage.setItem('savedUID', uid);
   }
