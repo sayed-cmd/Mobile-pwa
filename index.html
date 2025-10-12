@@ -61,28 +61,39 @@
 
   <!-- Paste UID Logic -->
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const pasteBtn = document.getElementById("pasteUID");
-      const uidInput = document.getElementById("uidInput");
+document.addEventListener("DOMContentLoaded", () => {
+  const pasteBtn = document.getElementById("pasteUID");
+  const uidInput = document.getElementById("uidInput");
 
-      pasteBtn.addEventListener("click", async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text.trim()) {
-            uidInput.value = text.trim();
-            uidInput.dispatchEvent(new Event('change'));
-            alert("✅ UID pasted successfully!");
-          } else {
-            alert("⚠️ Clipboard is empty!");
-          }
-        } catch (err) {
-          alert("❌ Failed to read clipboard: " + err.message);
-        }
-      });
-    });
-  </script>
+  pasteBtn.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        uidInput.value = text.trim();
+        uidInput.dispatchEvent(new Event('change'));
+        alert("✅ UID pasted successfully!");
+      } else {
+        alert("⚠️ Clipboard is empty!");
+      }
+    } catch (err) {
+      // 🔽 এখানে fallback যোগ করা হলো
+      console.warn("Clipboard access denied:", err.message);
+      const manual = prompt("Pase manually");
+      if (manual && manual.trim()) {
+        uidInput.value = manual.trim();
+        uidInput.dispatchEvent(new Event('change'));
+        alert("✅ UID pasted successfully (manual)!");
+      } else {
+        alert("⚠️ No text pasted.");
+      }
+    }
+  });
+});
+</script>
+
 
   <!-- Main App JS -->
   <script src="app.js"></script>
 </body>
 </html>
+
