@@ -67,7 +67,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       if(data && data.number){
         numberDiv.textContent=`Number: ${data.number}`;
         callBtn.href=`tel:${data.number}`;
-        callBtn.textContent=`📲 Tap to Call ${data.number}`;
+        
         callBtn.style.display='inline-block';
       } else {
         numberDiv.textContent='Waiting for number...';
@@ -134,7 +134,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     qrReader.style.display='block';
     if(!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
     qrScanning = true;
-    scanQRBtn.textContent="❌ Close QR";
+    scanQRBtn.textContent="Close QR";
 
     try{
       const cameras = await Html5Qrcode.getCameras();
