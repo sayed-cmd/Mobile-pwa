@@ -18,7 +18,7 @@
     <!-- Number Display -->
     <div class="number-section">
       <p class="label">NUMBER</p>
-      <h1 id="number">Waiting for number...</h1>
+      <h1 id="number">Waiting to start...</h1>
     </div>
 
     <!-- Center Call Button -->
@@ -44,7 +44,7 @@
 
     <!-- UID Section -->
     <div class="uid-section">
-      <button id="pasteUID" class="paste-btn">Set UID</button>
+      <button id="pasteUID" class="paste-btn">SET UID</button>
       <input id="uidInput" type="hidden" />
     </div>
 
@@ -71,9 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (text.trim()) {
         uidInput.value = text.trim();
         uidInput.dispatchEvent(new Event('change'));
-        alert("✅ UID pasted successfully!");
+        alert("UID pasted successfully!");
       } else {
-        alert("⚠️ Clipboard is empty!");
+        alert("Clipboard is empty!");
       }
     } catch (err) {
       // 🔽 এখানে fallback যোগ করা হলো
@@ -82,9 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (manual && manual.trim()) {
         uidInput.value = manual.trim();
         uidInput.dispatchEvent(new Event('change'));
-        alert("✅ UID pasted successfully (manual)!");
+        alert("UID pasted successfully (manual)!");
       } else {
-        alert("⚠️ No text pasted.");
+        alert("No text pasted.");
       }
     }
   });
@@ -96,4 +96,3 @@ document.addEventListener("DOMContentLoaded", () => {
   <script src="app.js"></script>
 </body>
 </html>
-

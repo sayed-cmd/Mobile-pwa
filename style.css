@@ -19,7 +19,7 @@ body {
 .app-title {
   font-size: 22px;
   margin-bottom: 15px;
-  color: #e4e4e4;
+  color: #898e7e;
 }
 
 .uid-section {
@@ -76,12 +76,12 @@ body {
   border-radius: 50%;
   padding: 20px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
 }
 
 .call-btn img:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 15px rgba(52, 168, 83, 0.5);
+  transform: scale(1.01);
+  box-shadow: 0 0 2px rgba(52, 168, 83, 0.5);
 }
 
 #status {
@@ -143,14 +143,14 @@ pre#log {
 
 .paste-btn {
   display: inline-block;
-  padding: 10px 18px;
+  padding: 10px 10px;
   font-size: 12px;
   background-color: #232323;
   color: rgb(148, 148, 148);
   border: none;
-  border-radius: 10px;
+  border-radius: 15px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.1s ease;
 }
 
 .paste-btn:hover {

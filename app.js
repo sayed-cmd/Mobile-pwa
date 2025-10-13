@@ -65,12 +65,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     callRef.on('value', snap => {
       const data = snap.val();
       if(data && data.number){
-        numberDiv.textContent=`Number: ${data.number}`;
+        numberDiv.textContent=`☎ ${data.number}`;
         callBtn.href=`tel:${data.number}`;
         
         callBtn.style.display='inline-block';
       } else {
-        numberDiv.textContent='Waiting for number...';
+        numberDiv.textContent='Waiting to start...';
         callBtn.style.display='none';
       }
     });
@@ -79,8 +79,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   function stopListener(){
     if(callRef) callRef.off();
     currentUID = null;
-    setStatus('Not connected','#333');
-    numberDiv.textContent='Waiting for number...';
+    setStatus('Not connected','#593737ff');
+    numberDiv.textContent='Waiting to start...';
     callBtn.style.display='none';
     startBtn.disabled = false; stopBtn.disabled = true;
 
