@@ -1,53 +1,98 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Browser to Mobile Call</title>
-  <link rel="stylesheet" href="style.css"> <!-- যদি আলাদা CSS ফাইল থাকে -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="container">
-  <h2>📞 Browser to Mobile Call</h2>
 
-  <label for="uidInput">UID</label>
-  <input id="uidInput" type="text" placeholder="Scan QR or paste UID..." />
+  <div class="container">
 
-  <div class="btn-group">
-    <button id="scanQR" class="btn btn-primary">📷 Scan QR</button>
-    <button id="changeUID" class="btn btn-secondary" style="background:#f59e0b;">🔄 Change UID</button>
+    <!-- Header -->
+    <h2 class="app-title">Browser to Mobile Call</h2>
+
+    
+
+    <!-- Number Display -->
+    <div class="number-section">
+      <p class="label">NUMBER</p>
+      <h1 id="number">Waiting to start...</h1>
+    </div>
+
+    <!-- Center Call Button -->
+    <div class="call-btn">
+      <a id="callBtn" href="#" style="display:none;">
+        <img src="icons/call.png" alt="Call Button" />
+      </a>
+    </div>
+
+    <!-- Status Display -->
+    <div id="status" class="status">Status: Not connected</div>
+
+    <!-- Bottom Icon Row -->
+    <div class="icon-row">
+      <img src="icons/start.png" alt="Start" id="startBtn" />
+      <img src="icons/stop.png" alt="Stop" id="stopBtn" disabled />
+      <img src="icons/reset.png" alt="Change UID" id="changeUID" />
+      <img src="icons/scan.png" alt="Scan QR" id="scanQR" />
+    </div>
+
+    <!-- QR Reader -->
+    <div id="qr-reader"></div>
+
+    <!-- UID Section -->
+    <div class="uid-section">
+      <button id="pasteUID" class="paste-btn">SET UID</button>
+      <input id="uidInput" type="hidden" />
+    </div>
+
+    <!-- Debug Log -->
+    <pre id="log" style="display:none;"></pre>
   </div>
 
-  <div class="btn-group">
-    <button id="startBtn" class="btn btn-primary">▶ Start</button>
-    <button id="stopBtn" class="btn btn-secondary" disabled>⏹ Stop</button>
-  </div>
+  <!-- Firebase SDK -->
+  <script src="libs/firebase-app-compat.js"></script>
+  <script src="libs/firebase-database-compat.js"></script>
 
-  <div id="qr-reader"></div>
+  <!-- QR Scanner -->
+  <script src="libs/html5-qrcode.min.js"></script>
 
-  <div id="status">Status: not connected</div>
-  <div id="number">Waiting for number...</div>
+  <!-- Paste UID Logic -->
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const pasteBtn = document.getElementById("pasteUID");
+  const uidInput = document.getElementById("uidInput");
 
-  <div id="callBtn-container">
-    <a id="callBtn" href="#" style="display:none;">📲 Tap to Call</a>
-  </div>
+  pasteBtn.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        uidInput.value = text.trim();
+        uidInput.dispatchEvent(new Event('change'));
+        alert("UID pasted successfully!");
+      } else {
+        alert("Clipboard is empty!");
+      }
+    } catch (err) {
+      // 🔽 এখানে fallback যোগ করা হলো
+      console.warn("Clipboard access denied:", err.message);
+      const manual = prompt("Pase manually");
+      if (manual && manual.trim()) {
+        uidInput.value = manual.trim();
+        uidInput.dispatchEvent(new Event('change'));
+        alert("UID pasted successfully (manual)!");
+      } else {
+        alert("No text pasted.");
+      }
+    }
+  });
+});
+</script>
 
-  <div class="debug">
-    <strong>Console Log</strong>
-    <pre id="log"></pre>
-  </div>
-</div>
-  
-<!-- Firebase SDK -->
-<script src="libs/firebase-app-compat.js"></script>
-<script src="libs/firebase-database-compat.js"></script>
 
-<!-- QR Scanner -->
-<script src="libs/html5-qrcode.min.js"></script>
-
-<!-- App JS -->
-<script src="app.js"></script>
+  <!-- Main App JS -->
+  <script src="app.js"></script>
 </body>
 </html>
-
-
