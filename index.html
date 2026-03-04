@@ -441,9 +441,11 @@
   const clearBtn    = document.getElementById('clearHistory');
   const toastEl     = document.getElementById('toast');
 
-  let callRef = null, html5QrCode = null, qrScanning = false, toastTmr = null;
+  let callRef = null, histRef = null;
+  let html5QrCode = null, qrScanning = false, toastTmr = null;
+  let currentUID = null;
 
-  /* ── Firebase ── */
+  /* ── Firebase init ── */
   const cfg = {
     apiKey: "AIzaSyAKTNMVnl4W04_WH0PqsIA2xattjTR6x0M",
     authDomain: "call-from-browserss.firebaseapp.com",
@@ -453,11 +455,11 @@
     messagingSenderId: "421459301855",
     appId: "1:421459301855:web:5f9581250da6cd3935a06a"
   };
-  try { firebase.initializeApp(cfg); } catch(e){}
+  try { firebase.initializeApp(cfg); } catch(e) {}
   const db = firebase.database();
 
   /* ── Toast ── */
-  function toast(msg, icon='✓') {
+  function toast(msg, icon = '✓') {
     toastEl.innerHTML = `<span>${icon}</span>${msg}`;
     toastEl.classList.add('show');
     clearTimeout(toastTmr);
@@ -466,51 +468,63 @@
 
   /* ── Number formatter ── */
   function fmt(raw) {
-    const d = raw.replace(/\D/g,'');
-    // BD: 01XXXXXXXXX (11 digits) or 8801XXXXXXXXX (13 digits)
+    const d = raw.replace(/\D/g, '');
     if (/^(880)?01[3-9]\d{8}$/.test(d)) {
-      // strip country code, strip leading 0 → 1XXXXXXXXX (10 digits)
-      const local = d.length === 13 ? d.slice(3) : d.slice(1); // e.g. 185XXXXXXX
+      const local = d.length === 13 ? d.slice(3) : d.slice(1);
       return `+880 ${local.slice(0,3)}-${local.slice(3,6)}-${local.slice(6)}`;
     }
     return raw;
   }
 
-  /* ── BD Time ── */
+  /* ── BD Time / Date ── */
   function bdTime(ts) {
-    const d = ts ? new Date(ts) : new Date();
-    return d.toLocaleTimeString('en-US', {
+    return new Date(ts || Date.now()).toLocaleTimeString('en-US', {
       timeZone: 'Asia/Dhaka',
       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
     });
   }
   function bdDate(ts) {
-    const d = ts ? new Date(ts) : new Date();
-    return d.toLocaleDateString('en-US', {
-      timeZone: 'Asia/Dhaka',
-      month: 'short', day: 'numeric'
+    return new Date(ts || Date.now()).toLocaleDateString('en-US', {
+      timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric'
     });
   }
 
-  /* ── History (max 5) ── */
-  function getHistory() { return JSON.parse(localStorage.getItem('callHistory')||'[]'); }
-  function saveHistory(h) { localStorage.setItem('callHistory', JSON.stringify(h)); }
-
-  function addHistory(number) {
-    let h = getHistory();
-    if (h.length && h[0].number === number) return;
-    h.unshift({ number, ts: Date.now() });
-    if (h.length > 5) h = h.slice(0, 5);
-    saveHistory(h);
-    renderHistory(h);
+  /* ── History — Firebase (max 5) ── */
+  function loadHistory(uid) {
+    if (histRef) histRef.off();
+    histRef = db.ref(`history/${uid}`);
+    histRef.orderByChild('ts').limitToLast(5).on('value', snap => {
+      const items = [];
+      snap.forEach(child => items.unshift(child.val()));
+      renderHistory(items);
+    });
   }
 
-  function renderHistory(h) {
-    if (!h || !h.length) {
+  function addHistory(uid, number) {
+    if (!uid) return;
+    const ref = db.ref(`history/${uid}`);
+    ref.orderByChild('ts').limitToLast(1).once('value', snap => {
+      let isDupe = false;
+      snap.forEach(child => { if (child.val().number === number) isDupe = true; });
+      if (isDupe) return;
+      ref.push({ number, ts: Date.now() });
+      // trim to 5
+      ref.orderByChild('ts').once('value', allSnap => {
+        const keys = [];
+        allSnap.forEach(c => keys.push(c.key));
+        if (keys.length > 5) {
+          keys.slice(0, keys.length - 5).forEach(k => ref.child(k).remove());
+        }
+      });
+    });
+  }
+
+  function renderHistory(items) {
+    if (!items || !items.length) {
       recentList.innerHTML = '<div class="recent-empty">No recent calls</div>';
       return;
     }
-    recentList.innerHTML = h.map(item => `
+    recentList.innerHTML = items.map(item => `
       <div class="recent-item">
         <div class="recent-icon">📞</div>
         <div class="recent-info">
@@ -525,17 +539,17 @@
       </div>`).join('');
   }
 
-  /* ── UI state ── */
+  /* ── UI helpers ── */
   function setConnected(yes) {
     statusDot.className = 'status-dot' + (yes ? ' on' : '');
   }
+
   function showNumber(number, ts) {
     const formatted = fmt(number);
     numberValue.textContent = formatted;
     numberValue.className = 'number-value';
     numberTime.textContent = bdTime(ts);
     numberTime.className = 'number-time visible';
-    // turn ring into green call button
     avatarRing.href = `tel:${number}`;
     avatarRing.onclick = null;
     avatarRing.className = 'avatar-ring active callable flash';
@@ -545,14 +559,14 @@
     if (Notification.permission === 'granted') {
       new Notification('Incoming Number', { body: formatted });
     }
-    addHistory(number);
+    addHistory(currentUID, number);
   }
+
   function clearNumber() {
     numberValue.textContent = 'Waiting for number…';
     numberValue.className = 'number-value idle';
     numberTime.textContent = '';
     numberTime.className = 'number-time';
-    // reset ring to idle
     avatarRing.href = '#';
     avatarRing.onclick = () => false;
     avatarRing.className = 'avatar-ring';
@@ -562,19 +576,32 @@
   /* ── Firebase listener ── */
   function attach(uid) {
     if (callRef) callRef.off();
+    if (histRef) histRef.off();
+    currentUID = uid;
     callRef = db.ref(`calls/${uid}`);
     setConnected(true);
+    loadHistory(uid);
     callRef.on('value', snap => {
       const d = snap.val();
       if (d && d.number) showNumber(d.number, d.timestamp);
       else clearNumber();
+    }, err => {
+      // connection error
+      setConnected(false);
+      toast('Connection error', '❌');
+      console.error(err);
     });
   }
+
   function detach() {
     if (callRef) { callRef.off(); callRef = null; }
+    if (histRef) { histRef.off(); histRef = null; }
+    currentUID = null;
     setConnected(false);
     clearNumber();
+    renderHistory([]);
   }
+
   function connect(uid) {
     if (!uid) return;
     uidInput.value = uid;
@@ -584,7 +611,10 @@
   }
 
   /* ── Menu ── */
-  menuBtn.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+  menuBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
   document.addEventListener('click', () => dropdown.classList.remove('open'));
 
   /* ── Paste UID ── */
@@ -613,8 +643,8 @@
   scanQR.addEventListener('click', async () => {
     dropdown.classList.remove('open');
     if (qrScanning) {
-      await html5QrCode.stop().catch(()=>{});
-      try { html5QrCode.clear(); } catch(e){}
+      await html5QrCode.stop().catch(() => {});
+      try { html5QrCode.clear(); } catch(e) {}
       qrReader.style.display = 'none';
       qrScanning = false;
       return;
@@ -631,7 +661,7 @@
       await html5QrCode.start(camId, { fps: 10, qrbox: 220 }, decoded => {
         connect(decoded);
         html5QrCode.stop().then(() => {
-          try { html5QrCode.clear(); } catch(e){}
+          try { html5QrCode.clear(); } catch(e) {}
           qrReader.style.display = 'none';
           qrScanning = false;
         });
@@ -644,7 +674,7 @@
 
   /* ── Clear history ── */
   clearBtn.addEventListener('click', () => {
-    saveHistory([]);
+    if (currentUID) db.ref(`history/${currentUID}`).remove();
     renderHistory([]);
     toast('History cleared', '🗑️');
   });
@@ -655,9 +685,8 @@
   }
 
   /* ── Auto-connect ── */
-  renderHistory(getHistory());
   const saved = localStorage.getItem('savedUID');
-  if (saved) { uidInput.value = saved; attach(saved); setConnected(true); }
+  if (saved) { uidInput.value = saved; attach(saved); }
 
 })();
 </script>
