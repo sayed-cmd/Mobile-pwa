@@ -419,12 +419,12 @@
 <input id="uidInput" type="hidden"/>
 <div class="toast" id="toast"></div>
 
+
 <script src="libs/firebase-app-compat.js"></script>
 <script src="libs/firebase-database-compat.js"></script>
 <script src="libs/html5-qrcode.min.js"></script>
 <script>
 (function () {
-  /* ── refs ── */
   const uidInput    = document.getElementById('uidInput');
   const statusDot   = document.getElementById('statusDot');
   const avatarRing  = document.getElementById('avatarRing');
@@ -441,11 +441,11 @@
   const clearBtn    = document.getElementById('clearHistory');
   const toastEl     = document.getElementById('toast');
 
-  let callRef = null, histRef = null;
+  let callRef = null;
   let html5QrCode = null, qrScanning = false, toastTmr = null;
   let currentUID = null;
 
-  /* ── Firebase init ── */
+  /* Firebase */
   const cfg = {
     apiKey: "AIzaSyAKTNMVnl4W04_WH0PqsIA2xattjTR6x0M",
     authDomain: "call-from-browserss.firebaseapp.com",
@@ -458,25 +458,26 @@
   try { firebase.initializeApp(cfg); } catch(e) {}
   const db = firebase.database();
 
-  /* ── Toast ── */
-  function toast(msg, icon = '✓') {
-    toastEl.innerHTML = `<span>${icon}</span>${msg}`;
+  /* Toast */
+  function toast(msg, icon) {
+    icon = icon || '✓';
+    toastEl.innerHTML = '<span>' + icon + '</span>' + msg;
     toastEl.classList.add('show');
     clearTimeout(toastTmr);
-    toastTmr = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    toastTmr = setTimeout(function(){ toastEl.classList.remove('show'); }, 2600);
   }
 
-  /* ── Number formatter ── */
+  /* Number formatter */
   function fmt(raw) {
-    const d = raw.replace(/\D/g, '');
+    var d = raw.replace(/\D/g, '');
     if (/^(880)?01[3-9]\d{8}$/.test(d)) {
-      const local = d.length === 13 ? d.slice(3) : d.slice(1);
-      return `+880 ${local.slice(0,3)}-${local.slice(3,6)}-${local.slice(6)}`;
+      var local = d.length === 13 ? d.slice(3) : d.slice(1);
+      return '+880 ' + local.slice(0,3) + '-' + local.slice(3,6) + '-' + local.slice(6);
     }
     return raw;
   }
 
-  /* ── BD Time / Date ── */
+  /* BD Time/Date */
   function bdTime(ts) {
     return new Date(ts || Date.now()).toLocaleTimeString('en-US', {
       timeZone: 'Asia/Dhaka',
@@ -489,119 +490,90 @@
     });
   }
 
-  /* ── History — Firebase (max 5) ── */
-  function loadHistory(uid) {
-    if (histRef) histRef.off();
-    histRef = db.ref(`history/${uid}`);
-    histRef.orderByChild('ts').limitToLast(5).on('value', snap => {
-      const items = [];
-      snap.forEach(child => items.unshift(child.val()));
-      renderHistory(items);
-    });
+  /* History — localStorage (max 5) */
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('callHistory') || '[]'); } catch(e) { return []; }
   }
-
-  function addHistory(uid, number) {
-    if (!uid) return;
-    const ref = db.ref(`history/${uid}`);
-    ref.orderByChild('ts').limitToLast(1).once('value', snap => {
-      let isDupe = false;
-      snap.forEach(child => { if (child.val().number === number) isDupe = true; });
-      if (isDupe) return;
-      ref.push({ number, ts: Date.now() });
-      // trim to 5
-      ref.orderByChild('ts').once('value', allSnap => {
-        const keys = [];
-        allSnap.forEach(c => keys.push(c.key));
-        if (keys.length > 5) {
-          keys.slice(0, keys.length - 5).forEach(k => ref.child(k).remove());
-        }
-      });
-    });
+  function saveHistory(h) {
+    try { localStorage.setItem('callHistory', JSON.stringify(h)); } catch(e) {}
   }
-
-  function renderHistory(items) {
-    if (!items || !items.length) {
+  function addHistory(number) {
+    var h = getHistory();
+    if (h.length && h[0].number === number) return;
+    h.unshift({ number: number, ts: Date.now() });
+    if (h.length > 5) h = h.slice(0, 5);
+    saveHistory(h);
+    renderHistory(h);
+  }
+  function renderHistory(h) {
+    if (!h || !h.length) {
       recentList.innerHTML = '<div class="recent-empty">No recent calls</div>';
       return;
     }
-    recentList.innerHTML = items.map(item => `
-      <div class="recent-item">
-        <div class="recent-icon">📞</div>
-        <div class="recent-info">
-          <div class="recent-num">${fmt(item.number)}</div>
-          <div class="recent-time">${bdTime(item.ts)} &nbsp;·&nbsp; ${bdDate(item.ts)}</div>
-        </div>
-        <a class="recent-call" href="tel:${item.number}" title="Call">
-          <svg viewBox="0 0 24 24" fill="#4caf72">
-            <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.29 21 3 13.71 3 5c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.23 1.01L6.6 10.8z"/>
-          </svg>
-        </a>
-      </div>`).join('');
+    recentList.innerHTML = h.map(function(item) {
+      return '<div class="recent-item">' +
+        '<div class="recent-icon">📞</div>' +
+        '<div class="recent-info">' +
+          '<div class="recent-num">' + fmt(item.number) + '</div>' +
+          '<div class="recent-time">' + bdTime(item.ts) + ' &nbsp;·&nbsp; ' + bdDate(item.ts) + '</div>' +
+        '</div>' +
+        '<a class="recent-call" href="tel:' + item.number + '" title="Call">' +
+          '<svg viewBox="0 0 24 24" fill="#4caf72"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.58.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.29 21 3 13.71 3 5c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.23 1.01L6.6 10.8z"/></svg>' +
+        '</a>' +
+      '</div>';
+    }).join('');
   }
 
-  /* ── UI helpers ── */
+  /* UI */
   function setConnected(yes) {
     statusDot.className = 'status-dot' + (yes ? ' on' : '');
   }
-
   function showNumber(number, ts) {
-    const formatted = fmt(number);
+    var formatted = fmt(number);
     numberValue.textContent = formatted;
     numberValue.className = 'number-value';
     numberTime.textContent = bdTime(ts);
     numberTime.className = 'number-time visible';
-    avatarRing.href = `tel:${number}`;
+    avatarRing.href = 'tel:' + number;
     avatarRing.onclick = null;
     avatarRing.className = 'avatar-ring active callable flash';
     avatarIcon.textContent = '📞';
-    setTimeout(() => avatarRing.classList.remove('flash'), 1400);
+    setTimeout(function(){ avatarRing.classList.remove('flash'); }, 1400);
     if (navigator.vibrate) navigator.vibrate([180, 80, 180]);
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification('Incoming Number', { body: formatted });
     }
-    addHistory(currentUID, number);
+    addHistory(number);
   }
-
   function clearNumber() {
     numberValue.textContent = 'Waiting for number…';
     numberValue.className = 'number-value idle';
     numberTime.textContent = '';
     numberTime.className = 'number-time';
     avatarRing.href = '#';
-    avatarRing.onclick = () => false;
+    avatarRing.onclick = function(){ return false; };
     avatarRing.className = 'avatar-ring';
     avatarIcon.textContent = '📵';
   }
 
-  /* ── Firebase listener ── */
+  /* Firebase listener */
   function attach(uid) {
     if (callRef) callRef.off();
-    if (histRef) histRef.off();
     currentUID = uid;
-    callRef = db.ref(`calls/${uid}`);
+    callRef = db.ref('calls/' + uid);
     setConnected(true);
-    loadHistory(uid);
-    callRef.on('value', snap => {
-      const d = snap.val();
+    callRef.on('value', function(snap) {
+      var d = snap.val();
       if (d && d.number) showNumber(d.number, d.timestamp);
       else clearNumber();
-    }, err => {
-      // connection error
-      setConnected(false);
-      toast('Connection error', '❌');
-      console.error(err);
     });
   }
-
   function detach() {
     if (callRef) { callRef.off(); callRef = null; }
-    if (histRef) { histRef.off(); histRef = null; }
     currentUID = null;
     setConnected(false);
     clearNumber();
-    renderHistory([]);
   }
-
   function connect(uid) {
     if (!uid) return;
     uidInput.value = uid;
@@ -610,28 +582,32 @@
     toast('Connected', '🔗');
   }
 
-  /* ── Menu ── */
-  menuBtn.addEventListener('click', e => {
+  /* Menu */
+  menuBtn.addEventListener('click', function(e) {
     e.stopPropagation();
     dropdown.classList.toggle('open');
   });
-  document.addEventListener('click', () => dropdown.classList.remove('open'));
+  document.addEventListener('click', function(){ dropdown.classList.remove('open'); });
 
-  /* ── Paste UID ── */
-  pasteUID.addEventListener('click', async () => {
+  /* Paste UID */
+  pasteUID.addEventListener('click', function() {
     dropdown.classList.remove('open');
-    try {
-      const t = await navigator.clipboard.readText();
-      if (t.trim()) connect(t.trim());
-      else toast('Clipboard is empty', '⚠️');
-    } catch {
-      const m = prompt('Paste UID manually:');
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function(t) {
+        if (t.trim()) connect(t.trim());
+        else toast('Clipboard is empty', '⚠️');
+      }).catch(function() {
+        var m = prompt('Paste UID manually:');
+        if (m && m.trim()) connect(m.trim());
+      });
+    } else {
+      var m = prompt('Paste UID manually:');
       if (m && m.trim()) connect(m.trim());
     }
   });
 
-  /* ── Reset ── */
-  resetBtn.addEventListener('click', () => {
+  /* Reset */
+  resetBtn.addEventListener('click', function() {
     dropdown.classList.remove('open');
     localStorage.removeItem('savedUID');
     uidInput.value = '';
@@ -639,11 +615,11 @@
     toast('Disconnected', '🔄');
   });
 
-  /* ── QR Scan ── */
-  scanQR.addEventListener('click', async () => {
+  /* QR Scan */
+  scanQR.addEventListener('click', function() {
     dropdown.classList.remove('open');
     if (qrScanning) {
-      await html5QrCode.stop().catch(() => {});
+      html5QrCode.stop().catch(function(){});
       try { html5QrCode.clear(); } catch(e) {}
       qrReader.style.display = 'none';
       qrScanning = false;
@@ -653,39 +629,41 @@
     qrReader.style.display = 'block';
     if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader');
     qrScanning = true;
-    try {
-      const cams = await Html5Qrcode.getCameras();
+    Html5Qrcode.getCameras().then(function(cams) {
       if (!cams || !cams.length) { toast('No camera found', '⚠️'); qrScanning = false; return; }
-      let camId = cams[0].id;
-      for (const c of cams) if (c.label.toLowerCase().includes('back')) { camId = c.id; break; }
-      await html5QrCode.start(camId, { fps: 10, qrbox: 220 }, decoded => {
+      var camId = cams[0].id;
+      for (var i = 0; i < cams.length; i++) {
+        if (cams[i].label.toLowerCase().indexOf('back') !== -1) { camId = cams[i].id; break; }
+      }
+      html5QrCode.start(camId, { fps: 10, qrbox: 220 }, function(decoded) {
         connect(decoded);
-        html5QrCode.stop().then(() => {
+        html5QrCode.stop().then(function() {
           try { html5QrCode.clear(); } catch(e) {}
           qrReader.style.display = 'none';
           qrScanning = false;
         });
-      }, () => {});
-    } catch(e) {
+      }, function(){});
+    }).catch(function() {
       toast('Camera error', '⚠️');
       qrScanning = false;
-    }
+    });
   });
 
-  /* ── Clear history ── */
-  clearBtn.addEventListener('click', () => {
-    if (currentUID) db.ref(`history/${currentUID}`).remove();
+  /* Clear history */
+  clearBtn.addEventListener('click', function() {
+    saveHistory([]);
     renderHistory([]);
     toast('History cleared', '🗑️');
   });
 
-  /* ── Notifications ── */
-  if ('Notification' in window && Notification.permission === 'default') {
+  /* Notifications */
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  /* ── Auto-connect ── */
-  const saved = localStorage.getItem('savedUID');
+  /* Auto-connect + load history */
+  renderHistory(getHistory());
+  var saved = localStorage.getItem('savedUID');
   if (saved) { uidInput.value = saved; attach(saved); }
 
 })();
