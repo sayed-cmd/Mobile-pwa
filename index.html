@@ -490,20 +490,35 @@
     });
   }
 
-  /* History — localStorage (max 5) */
-  function getHistory() {
-    try { return JSON.parse(localStorage.getItem('callHistory') || '[]'); } catch(e) { return []; }
+  /* History — Firebase (max 5) */
+  var histRef = null;
+
+  function loadHistory(uid) {
+    if (histRef) histRef.off();
+    histRef = db.ref('history/' + uid);
+    histRef.on('value', function(snap) {
+      var items = [];
+      snap.forEach(function(c) { items.push(c.val()); });
+      items.sort(function(a, b) { return (b.ts || 0) - (a.ts || 0); });
+      renderHistory(items.slice(0, 5));
+    });
   }
-  function saveHistory(h) {
-    try { localStorage.setItem('callHistory', JSON.stringify(h)); } catch(e) {}
-  }
+
   function addHistory(number) {
-    var h = getHistory();
-    if (h.length && h[0].number === number) return;
-    h.unshift({ number: number, ts: Date.now() });
-    if (h.length > 5) h = h.slice(0, 5);
-    saveHistory(h);
-    renderHistory(h);
+    if (!currentUID) return;
+    var ref = db.ref('history/' + currentUID);
+    ref.push({ number: number, ts: Date.now() });
+    // trim oldest beyond 5
+    ref.once('value', function(snap) {
+      var entries = [];
+      snap.forEach(function(c) { entries.push({ key: c.key, ts: c.val().ts || 0 }); });
+      if (entries.length > 5) {
+        entries.sort(function(a, b) { return a.ts - b.ts; });
+        entries.slice(0, entries.length - 5).forEach(function(e) {
+          ref.child(e.key).remove();
+        });
+      }
+    });
   }
   function renderHistory(h) {
     if (!h || !h.length) {
@@ -562,6 +577,7 @@
     currentUID = uid;
     callRef = db.ref('calls/' + uid);
     setConnected(true);
+    loadHistory(uid);
     callRef.on('value', function(snap) {
       var d = snap.val();
       if (d && d.number) showNumber(d.number, d.timestamp);
@@ -570,9 +586,11 @@
   }
   function detach() {
     if (callRef) { callRef.off(); callRef = null; }
+    if (histRef) { histRef.off(); histRef = null; }
     currentUID = null;
     setConnected(false);
     clearNumber();
+    renderHistory([]);
   }
   function connect(uid) {
     if (!uid) return;
@@ -651,7 +669,7 @@
 
   /* Clear history */
   clearBtn.addEventListener('click', function() {
-    saveHistory([]);
+    if (currentUID) db.ref('history/' + currentUID).remove();
     renderHistory([]);
     toast('History cleared', '🗑️');
   });
@@ -661,10 +679,10 @@
     Notification.requestPermission();
   }
 
-  /* Auto-connect + load history */
-  renderHistory(getHistory());
+  /* Auto-connect */
   var saved = localStorage.getItem('savedUID');
   if (saved) { uidInput.value = saved; attach(saved); }
+  else { renderHistory([]); }
 
 })();
 </script>
