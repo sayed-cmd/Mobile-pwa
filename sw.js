@@ -1,14 +1,13 @@
-const CACHE_NAME = 'callbridge-v1';
+const CACHE_NAME = 'callbridge-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/libs/firebase-app-compat.js',
-  '/libs/firebase-database-compat.js',
-  '/libs/html5-qrcode.min.js'
+  './index.html',
+  './style.css',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png',
+  './libs/firebase-app-compat.js',
+  './libs/firebase-database-compat.js',
+  './libs/html5-qrcode.min.js'
 ];
 
 self.addEventListener('install', e => {
