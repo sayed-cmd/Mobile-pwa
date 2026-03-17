@@ -68,5 +68,13 @@
       "form_factor": "narrow",
       "label": "CallBridge Home Screen"
     }
+  ],
+  "dir": "auto",
+  "display_override": [
+    "minimal-ui",
+    "window-controls-overlay"
+  ],
+  "categories": [
+    "utilities"
   ]
 }
